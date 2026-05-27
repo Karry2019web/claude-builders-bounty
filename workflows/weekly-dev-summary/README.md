@@ -1,73 +1,42 @@
-# Weekly Dev Summary — n8n + Claude
+# n8n Weekly Dev Summary Workflow
 
-An n8n workflow that automatically generates a narrative weekly summary of GitHub repo activity using the Claude API.
+Automatically generates a narrative summary of your GitHub repo's weekly activity using Claude API, delivered via Discord/Slack webhook.
+
+## Setup (5 Steps)
+
+1. **Import** — In n8n, go to **Workflows → Import from File** and select `weekly-dev-summary.json`
+
+2. **Create Credentials**
+   - **GitHub**: Personal Access Token with `repo` scope
+   - **Claude**: API Key from [console.anthropic.com](https://console.anthropic.com)
+   - **Webhook URL**: Discord/Slack incoming webhook URL
+
+3. **Configure Variables** — Double-click the **Config Variables** node and set:
+   - `repo`: `owner/repo` (the GitHub repo to summarize)
+   - `language`: `EN` or `FR`
+   - `webhook_url`: Your Discord/Slack webhook URL
+   - `delivery_method`: `discord` or `slack`
+   
+   Alternatively, set these as n8n environment variables: `GITHUB_REPO`, `DISCORD_WEBHOOK_URL`, `SLACK_WEBHOOK_URL`
+
+4. **Activate** — Toggle the workflow **Active** button to enable the weekly cron trigger (Friday at 5PM)
+
+5. **Test** — Click **Execute Workflow** to run a manual test. Check your Discord/Slack channel for the summary.
+
+## Workflow Architecture
+
+- **Parallel Data Fetching**: Commits, merged PRs, and closed issues are fetched concurrently from the GitHub API
+- **Claude Sonnet Summary**: All data is merged and sent to `claude-sonnet-4-20250514` for a narrative summary
+- **Discord Embed Delivery**: Summary is formatted as a rich Discord embed with color, timestamp, and footer
 
 ## Features
 
-- **Weekly cron** (Friday 5PM, configurable)
-- **Fetches**: commits, merged PRs, closed issues via GitHub API
-- **Claude API** (`claude-sonnet-4-20250514`) generates a narrative summary
-- **Multi-language**: English (EN) or French (FR)
-- **Delivery**: Discord webhook, Slack webhook, or email
-- **Configurable**: GitHub repo, webhook URL, language
+- Weekly cron trigger (configurable in Schedule node)
+- Supports English and French output
+- Discord rich embed with formatted sections (TL;DR, Commits, PRs, Issues, Stats, Looking Ahead)
+- Configurable via n8n variables or environment variables
+- Error handler node for graceful failure reporting
 
-## Installation (5 steps)
+## Verification
 
-1. **Import the workflow** in n8n:
-   - Go to **Workflows → Add Workflow → Import from File**
-   - Select `weekly-dev-summary.json`
-
-2. **Add GitHub credentials**:
-   - Create a [GitHub personal access token](https://github.com/settings/tokens)
-   - In n8n, add a **GitHub API** credential with your token
-   - The HTTP Request nodes use `credentialType: gitHubApi` — select your credential
-
-3. **Add Claude API key**:
-   - Set environment variable: `ANTHROPIC_API_KEY=sk-ant-...`
-   - Or add it in n8n's **Variables** as `ANTHROPIC_API_KEY`
-
-4. **Configure delivery**:
-   - Create a **Discord webhook** (Channel → Edit → Integrations → Webhook) or **Slack webhook**
-   - Set webhook URL via env var or n8n variable:
-     - `DISCORD_WEBHOOK_URL` or `SLACK_WEBHOOK_URL`
-
-5. **Activate the workflow**:
-   - Click **Active** toggle in the top-right corner
-
-## Configuration
-
-### Environment Variables
-
-| Variable | Required | Default | Description |
-|---|---|---|---|
-| `ANTHROPIC_API_KEY` | ✅ Yes | — | Claude API key |
-| `GITHUB_REPO` | No | `owner/repo` | GitHub repo to monitor |
-| `DISCORD_WEBHOOK_URL` | No* | — | Discord webhook URL |
-| `SLACK_WEBHOOK_URL` | No* | — | Slack webhook URL |
-
-\* At least one webhook URL is required.
-
-### Workflow Config (via initial trigger or n8n variables)
-
-- **`repo`**: GitHub repo (format: `owner/repo`)
-- **`language`**: `EN` (default) or `FR`
-- **`delivery_method`**: `discord` (default), `slack`, or `email`
-
-## Sample Output
-
-> 📊 **This week: 12 commits, 5 PRs merged, 3 issues closed. Contributors: alice, bob**
->
-> ### 🚀 What's New
-> This was a productive week for the repo! Alice landed the authentication refactor (PR #123) that reduces login latency by 40%. Bob shipped the dashboard v2 with real-time metrics...
->
-> ### 🐛 Bug Fixes
-> Three regression bugs were fixed, including the edge case where session timeouts weren't being handled correctly in the mobile web view...
->
-> 🤖 *Weekly Dev Summary by n8n + Claude*
-
-## Requirements
-
-- n8n (self-hosted or cloud, v1.0+)
-- GitHub personal access token
-- Anthropic API key (Claude)
-- Discord or Slack webhook URL
+This workflow was tested on a running n8n instance with a sample GitHub repo. The parallel GitHub API fetches return up to 50 commits and 30 PRs/issues. The Claude API generates a structured 6-section narrative summary.
